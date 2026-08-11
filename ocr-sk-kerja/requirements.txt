@@ -1,0 +1,27 @@
+# --- Web service (CPU) ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+jinja2==3.1.5
+aiofiles==24.1.0
+pydantic==2.10.5
+pydantic-settings==2.7.1
+
+# --- PDF text extraction & page rasterization (CPU) ---
+PyMuPDF==1.25.2
+
+# --- OCR (CPU by default, ONNXRuntime backend) ---
+rapidocr-onnxruntime==1.4.4
+Pillow==11.1.0
+numpy<2.0
+# PENTING: onnxruntime>=1.19 (versi terbaru rapidocr menariknya secara default)
+# gagal load di CPU Intel generasi 8 dengan error "DLL initialization routine
+# failed" - build terbarunya butuh instruksi CPU (AVX-512) yang tidak dimiliki
+# i7 Gen 8. Dikunci ke 1.17.3 (baseline AVX2) supaya jalan di hardware target.
+onnxruntime==1.17.3
+
+# --- LLM client (talks to local Ollama over HTTP, no heavy lib needed) ---
+httpx==0.28.1
+
+# --- Utilities ---
+python-dotenv==1.0.1

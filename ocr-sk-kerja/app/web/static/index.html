@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OCR Service SK Kerja</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --border: #e2e6ec;
+    --text: #1a2233;
+    --text-dim: #5b6577;
+    --accent: #2f6fed;
+    --accent-weak: #eaf1ff;
+    --cpu: #2f9e6f;
+    --cpu-weak: #e8f7f0;
+    --gpu: #c2410c;
+    --gpu-weak: #fff1e6;
+    --ok: #2f9e6f;
+    --bad: #d1453b;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(20,30,60,.04), 0 6px 20px rgba(20,30,60,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420;
+      --panel: #161d2b;
+      --border: #262f42;
+      --text: #e7ebf3;
+      --text-dim: #8b95ac;
+      --accent: #5b8ef8;
+      --accent-weak: #17233f;
+      --cpu: #4fce9c;
+      --cpu-weak: #10261e;
+      --gpu: #ef8c4a;
+      --gpu-weak: #2c1c10;
+      --ok: #4fce9c;
+      --bad: #ef6a61;
+      --shadow: 0 1px 2px rgba(0,0,0,.25), 0 6px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { margin-bottom: 20px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--text-dim); font-size: .92rem; }
+
+  .statusbar {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; margin: 18px 0 24px;
+    box-shadow: var(--shadow); font-size: .82rem; color: var(--text-dim);
+  }
+  .statusbar b { color: var(--text); font-weight: 600; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .dot.ok { background: var(--ok); }
+  .dot.bad { background: var(--bad); }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 20px; margin-bottom: 20px;
+  }
+
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 36px 20px; text-align: center; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-weak); }
+  .dropzone p { margin: 6px 0; }
+  .dropzone .hint { color: var(--text-dim); font-size: .85rem; }
+  .dropzone input { display: none; }
+  #filename { font-weight: 600; margin-top: 8px; min-height: 1.3em; }
+
+  button.primary {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 10px 22px; font-size: .95rem; font-weight: 600;
+    cursor: pointer; margin-top: 14px;
+  }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary:not(:disabled):hover { filter: brightness(1.08); }
+
+  .loading { display: none; align-items: center; gap: 10px; margin-top: 14px; color: var(--text-dim); }
+  .loading.show { display: flex; }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-box {
+    display: none; background: var(--gpu-weak); border: 1px solid var(--gpu);
+    color: var(--text); border-radius: 8px; padding: 12px 14px; margin-top: 14px; font-size: .9rem;
+  }
+  .error-box.show { display: block; }
+
+  #result { display: none; }
+  #result.show { display: block; }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .badge {
+    font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-weak); color: var(--accent);
+  }
+  .badge.cpu { background: var(--cpu-weak); color: var(--cpu); }
+  .badge.gpu { background: var(--gpu-weak); color: var(--gpu); }
+
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+  td.missing { color: var(--bad); font-style: italic; }
+  .status-ok { color: var(--ok); font-weight: 700; }
+  .status-bad { color: var(--bad); font-weight: 700; }
+
+  .trace { list-style: none; margin: 0; padding: 0; }
+  .trace li {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--border); font-size: .87rem;
+  }
+  .trace li:last-child { border-bottom: none; }
+  .trace .stage-name { flex: 1; }
+  .trace .detail { color: var(--text-dim); font-size: .8rem; }
+  .trace .dur { color: var(--text-dim); font-size: .8rem; min-width: 60px; text-align: right; }
+
+  pre.rawtext {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: .8rem; white-space: pre-wrap; word-break: break-word;
+    max-height: 220px; overflow: auto; color: var(--text-dim);
+  }
+  details summary { cursor: pointer; font-weight: 600; font-size: .9rem; margin-bottom: 8px; }
+
+  footer { color: var(--text-dim); font-size: .78rem; text-align: center; margin-top: 30px; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🗂️ OCR Service SK Kerja</h1>
+    <div class="sub">Upload SK Kerja (PDF / JPG / PNG) → ekstraksi field otomatis. Dijalankan lokal di mesin ini (CPU untuk OCR, GPU kecil untuk LLM pola baru).</div>
+  </header>
+
+  <div class="statusbar" id="statusbar">Memuat status server…</div>
+
+  <div class="card">
+    <h2>1. Upload Dokumen</h2>
+    <div class="dropzone" id="dropzone">
+      <p>📄 Klik untuk pilih file, atau drag & drop di sini</p>
+      <p class="hint">Format didukung: PDF, JPG, PNG (maks 20MB)</p>
+      <div id="filename"></div>
+      <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" />
+    </div>
+    <button class="primary" id="submitBtn" disabled>Proses Dokumen</button>
+    <div class="loading" id="loading"><div class="spinner"></div><span id="loadingText">Memproses…</span></div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="card" id="result">
+    <h2>2. Hasil Ekstraksi</h2>
+    <div class="badges" id="badges"></div>
+
+    <table style="margin-bottom: 22px;">
+      <thead><tr><th>Field</th><th>Nilai</th><th>Status</th></tr></thead>
+      <tbody id="fieldsBody"></tbody>
+    </table>
+
+    <details style="margin-bottom: 18px;">
+      <summary>⚙️ Jejak Proses Pipeline (resource per tahap)</summary>
+      <ul class="trace" id="traceList"></ul>
+    </details>
+
+    <details>
+      <summary>📃 Cuplikan Teks Mentah</summary>
+      <pre class="rawtext" id="rawText"></pre>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>3. Pola Dokumen yang Sudah Dipelajari</h2>
+    <table>
+      <thead><tr><th>Nama Pola</th><th>Signature Regex</th><th>Dipakai</th><th>Dibuat</th></tr></thead>
+      <tbody id="patternsBody"><tr><td colspan="4" style="color:var(--text-dim)">Memuat…</td></tr></tbody>
+    </table>
+  </div>
+
+  <footer>OCR Service SK Kerja &middot; RapidOCR (CPU) + Ollama (GPU kecil) &middot; lihat <code>PLAN-OCR-SERVICE-SK-KERJA.md</code></footer>
+</div>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const filenameEl = document.getElementById('filename');
+const submitBtn = document.getElementById('submitBtn');
+const loading = document.getElementById('loading');
+const loadingText = document.getElementById('loadingText');
+const errorBox = document.getElementById('errorBox');
+const resultEl = document.getElementById('result');
+
+let selectedFile = null;
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); });
+
+function setFile(f) {
+  selectedFile = f;
+  filenameEl.textContent = `Terpilih: ${f.name} (${(f.size/1024).toFixed(0)} KB)`;
+  submitBtn.disabled = false;
+}
+
+submitBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  errorBox.classList.remove('show');
+  resultEl.classList.remove('show');
+  submitBtn.disabled = true;
+  loading.classList.add('show');
+  loadingText.textContent = 'Memproses… (bisa 5–30 detik lebih lama jika ini template dokumen baru dan perlu LLM)';
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+
+  try {
+    const res = await fetch('/api/extract', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Terjadi kesalahan saat memproses dokumen.', data.stage_trace);
+    } else {
+      renderResult(data);
+    }
+  } catch (err) {
+    showError('Gagal menghubungi server: ' + err.message);
+  } finally {
+    loading.classList.remove('show');
+    submitBtn.disabled = false;
+    loadPatterns();
+    loadHealth();
+  }
+});
+
+function showError(msg, trace) {
+  errorBox.textContent = '❌ ' + msg;
+  errorBox.classList.add('show');
+}
+
+function badge(text, cls) {
+  return `<span class="badge ${cls || ''}">${text}</span>`;
+}
+
+function renderResult(data) {
+  const badges = document.getElementById('badges');
+  badges.innerHTML = [
+    badge(data.format_detected === 'pdf' ? '📄 PDF' : '🖼️ Gambar'),
+    badge(data.used_ocr ? '🔎 OCR dipakai (CPU)' : '⚡ OCR dilewati', data.used_ocr ? 'cpu' : ''),
+    data.used_llm ? badge('🧠 LLM dipakai — pola baru (GPU)', 'gpu') : badge('⚡ Pola dikenal — tanpa LLM', 'cpu'),
+    badge(`Pola: ${data.pattern_name || '-'}`),
+    badge(`⏱ ${data.total_duration_ms} ms`),
+  ].join('');
+
+  const tbody = document.getElementById('fieldsBody');
+  tbody.innerHTML = data.fields.map(f => `
+    <tr>
+      <td>${f.label}</td>
+      <td class="${f.is_present ? '' : 'missing'}">${f.value ? escapeHtml(f.value) : '(tidak ditemukan)'}</td>
+      <td class="${f.is_present ? 'status-ok' : 'status-bad'}">${f.is_present ? '✓ Terisi' : '✗ Hilang'}</td>
+    </tr>`).join('');
+
+  const traceList = document.getElementById('traceList');
+  traceList.innerHTML = data.stage_trace.map(s => `
+    <li>
+      <span class="badge ${s.resource}">${s.resource.toUpperCase()}</span>
+      <span class="stage-name">${s.stage}<div class="detail">${escapeHtml(s.detail || '')}</div></span>
+      <span class="dur">${s.duration_ms} ms</span>
+    </li>`).join('');
+
+  document.getElementById('rawText').textContent = data.raw_text_preview || '(tidak ada teks)';
+
+  if (data.warning) showError(data.warning);
+  resultEl.classList.add('show');
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadHealth() {
+  const bar = document.getElementById('statusbar');
+  try {
+    const res = await fetch('/api/health');
+    const h = await res.json();
+    bar.innerHTML = `
+      <span><span class="dot ok"></span><b>Server aktif</b></span>
+      <span>CPU: <b>${h.cpu_cores} core</b></span>
+      <span>OCR: <b>${h.ocr_backend}</b></span>
+      <span>LLM: <b>${h.llm_backend}</b></span>
+      <span><span class="dot ${h.ollama_reachable ? 'ok' : 'bad'}"></span>Ollama: <b>${h.ollama_reachable ? 'terhubung' : 'tidak terhubung'}</b></span>
+      <span>Pola tersimpan: <b>${h.patterns_learned}</b></span>
+    `;
+  } catch (e) {
+    bar.innerHTML = `<span><span class="dot bad"></span>Gagal memuat status server</span>`;
+  }
+}
+
+async function loadPatterns() {
+  const tbody = document.getElementById('patternsBody');
+  try {
+    const res = await fetch('/api/patterns');
+    const patterns = await res.json();
+    if (!patterns.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-dim)">Belum ada pola yang dipelajari. Upload dokumen dengan template baru untuk memulai.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = patterns.map(p => `
+      <tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td><code style="font-size:.78rem">${escapeHtml(p.signature_regex)}</code></td>
+        <td>${p.hit_count}x</td>
+        <td>${new Date(p.created_at).toLocaleString('id-ID')}</td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--bad)">Gagal memuat daftar pola</td></tr>`;
+  }
+}
+
+loadHealth();
+loadPatterns();
+</script>
+</body>
+</html>

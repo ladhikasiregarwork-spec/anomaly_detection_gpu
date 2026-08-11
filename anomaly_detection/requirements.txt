@@ -1,0 +1,40 @@
+# Requirements gabungan untuk KEDUA notebook di repo ini (layout-based + text-based).
+# Dipakai bersama lewat satu virtual environment + satu Jupyter kernel supaya tidak
+# perlu install torch/transformers dua kali (~beberapa GB) untuk tiap notebook.
+#
+#   pip install -r requirements.txt
+#
+# GPU: install torch DARI INDEX CUDA 11.8 (bukan PyPI polos, dan BUKAN cu121) supaya dapat
+# build yang bisa pakai GPU - lihat README "Setup GPU" untuk alasan cu118 spesifiknya:
+#   pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cu118
+# (pip install -r requirements.txt saja akan memasang torch CPU-only untuk baris di bawah -
+# jalankan perintah cu118 di atas TERLEBIH DAHULU, baru pip install -r requirements.txt.)
+
+# --- dipakai kedua notebook ---
+# PENTING: torch>=2.3 (dan versi rapidocr/onnxruntime terbaru) gagal DI-LOAD SAMA SEKALI di
+# CPU Intel generasi 8 dengan error "DLL initialization routine failed" - build terbarunya
+# butuh instruksi CPU (AVX-512) yang tidak dimiliki CPU ini. Dikunci ke 2.2.2 (baseline AVX2).
+# Build cu121 JUGA gagal load di mesin ini (cublas64_12.dll - "DLL initialization routine
+# failed") begitu driver GPU aktif - kemungkinan besar masalah AVX-512 yang sama tapi di sisi
+# cuBLAS-nya CUDA 12.x. cu118 (CUDA 11.8) terverifikasi JALAN di hardware ini.
+torch==2.2.2
+# transformers>=5 raises its minimum torch requirement to >=2.4 and silently disables the PyTorch
+# backend if it sees 2.2.2 ("PyTorch was not found" - even though torch itself imports fine). Stay
+# on the 4.x line, which is what this repo was actually built/tested against.
+transformers>=4.40,<5
+pypdfium2>=4
+pillow>=10
+# torch==2.2.2 dikompilasi untuk numpy 1.x - dengan numpy>=2 konversi tensor<->numpy CRASH
+# ("RuntimeError: Numpy is not available"), bukan cuma warning kosmetik. opencv-python (dipakai
+# rapidocr, di bawah) versi 5.x mewajibkan numpy>=2, jadi opencv-python DIKUNCI <5 juga supaya
+# seluruh rantai dependency tetap konsisten di numpy 1.x.
+numpy<2
+opencv-python<5
+
+# --- khusus text_based_anomaly_detection (OCR) ---
+rapidocr-onnxruntime>=1.3
+onnxruntime==1.17.3   # >=1.19 juga kena masalah AVX-512 yang sama seperti torch di atas
+
+# --- untuk menjalankan notebook-nya sendiri ---
+jupyter>=1.0
+ipykernel>=6.29

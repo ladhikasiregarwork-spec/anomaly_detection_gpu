@@ -1,0 +1,11 @@
+{
+  "mandatory_fields": [
+    { "key": "nomor_sk",   "label": "Nomor SK",                    "type": "string" },
+    { "key": "nama",       "label": "Nama Pegawai",                "type": "string" },
+    { "key": "nip",        "label": "NIP / Nomor Induk",           "type": "string" },
+    { "key": "jabatan",    "label": "Jabatan",                     "type": "string" },
+    { "key": "unit_kerja", "label": "Unit Kerja / Instansi",       "type": "string" },
+    { "key": "tanggal_sk", "label": "Tanggal SK",                  "type": "date"   },
+    { "key": "tmt",        "label": "TMT (Tanggal Mulai Tugas)",   "type": "date"   }
+  ]
+}

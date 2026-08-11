@@ -1,0 +1,27 @@
+# === anomaly_detection: personal data — NEVER commit these ===
+anomaly_detection/**/reference/
+anomaly_detection/**/data/
+anomaly_detection/**/result/
+
+# === ocr-sk-kerja: user uploads & learned patterns (runtime data) ===
+ocr-sk-kerja/data/uploads/*
+!ocr-sk-kerja/data/uploads/.gitkeep
+ocr-sk-kerja/data/patterns/*.db
+!ocr-sk-kerja/data/patterns/.gitkeep
+ocr-sk-kerja/.env
+
+# === Python (both projects) ===
+__pycache__/
+*.py[cod]
+.venv/
+.venv-gpu/
+.venv-corrupted-DELETE-ME/
+venv/
+*.egg-info/
+
+# === Jupyter ===
+.ipynb_checkpoints/
+
+# === OS ===
+.DS_Store
+Thumbs.db

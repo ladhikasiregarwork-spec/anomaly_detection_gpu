@@ -1,0 +1,23 @@
+# Python packages for bank_statement_anomaly_detection.ipynb
+#   pip install -r requirements.txt
+# Everything here is pure pip — there is NO separate system software to install.
+# (PDF reading uses pypdfium2, which bundles its rendering engine inside the package.)
+#
+# NOTE (this hardware — Intel 8th-gen CPU, no AVX-512): torch>=2.3 fails to even IMPORT here
+# ("DLL initialization routine failed") — newer builds need AVX-512. Pinned to a version that
+# loads on AVX2-only CPUs. The cu121 CUDA build ALSO fails the same way once a GPU driver is
+# active (cublas64_12.dll) — use cu118 instead, which is verified working on this hardware.
+# Run this BEFORE `pip install -r requirements.txt` (otherwise torch installs CPU-only):
+#   pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cu118
+torch==2.2.2
+# transformers>=5 raises its minimum torch requirement to >=2.4 and silently disables the PyTorch
+# backend if it sees 2.2.2. Stay on the 4.x line (what this repo was built/tested against).
+transformers>=4.40,<5
+pypdfium2>=4
+pillow>=10
+# torch==2.2.2 is compiled against numpy 1.x; numpy>=2 makes tensor<->numpy conversion CRASH.
+numpy<2
+matplotlib>=3.8
+# For running the notebook itself:
+jupyter>=1.0
+ipykernel>=6.29

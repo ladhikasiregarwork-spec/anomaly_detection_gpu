@@ -1,0 +1,22 @@
+# Personal data — NEVER commit these. They hold real statements, ID cards and payslips.
+reference/
+data/
+result/
+**/reference/
+**/data/
+**/result/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-gpu/
+.venv-corrupted-DELETE-ME/
+venv/
+.env
+
+# macOS
+.DS_Store
